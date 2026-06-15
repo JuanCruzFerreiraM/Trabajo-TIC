@@ -43,6 +43,21 @@ format:
 ## Contexto Teórico
 ### Codificación de Fuente
 
+La codificación es la traducción de los símbolos de una fuente con un formato adecuado para su transmisión, por lo que entonces un símbolo $s_k$ perteneciente a una fuente $S = \{s_1, s_2, \dots, s_{K-1}\} \text{ con } P\{s_k\} = p_k$ quedará codificado en una secuencia de largo en bits $l_k$ (esta secuencia es denominada palabra), además el código será instantáneo o de prefijo si ninguna palabra de código es prefijo de otra. Dichos códigos cumplen el **Teorema de codificación de fuente de Shannon** el cual establece lo siguiente:
+
+Dado $\bar{L} = \sum_{k=0}^{K-1} p_k l_k$ el largo promedio de la palabra de código, se cumple que 
+
+$$
+\bar{L} \ge H(S) 
+$$
+
+Donde $H(S)$ es la entropía de la fuente $S$ que es una medida de la incertidumbre asociada a la fuente $S$ [@proakis1995digital, p. 333], la misma se define matemáticamente como 
+
+$$
+H(S) = - \sum_{k=0}^{K-1} p_k \log_2(p_k) \quad \text{[bits/msj]}
+$$
+
+Por lo tanto el **Teorema de codificación de fuente de Shannon** nos da un límite a la compresión que puede realizarse usando un código instantáneo. Para acercarnos a este límite fundamental establecido por la entropía y lograr una compresión eficiente, utilizaremos el algoritmo de Huffman, este algoritmo es una codificación de longitud variable basada en la probabilidad de los símbolos de la fuente y consiste en sistematizar la idea de asignar longitudes de palabra menores a los símbolos más probables, el algoritmo es óptimo en el sentido de que el promedio de dígitos binarios requeridos para representar un símbolo es mínimo [@proakis1995digital, p. 342], sin embargo la eficiencia de esta codificación se ve limitada en el caso de que los símbolos sean equiprobables [@proakis1995digital]. En el caso particular del trabajo que se está desarrollando la fuente a codificar contiene píxeles negros y blancos con probabilidad de ocurrencia prácticamente iguales, para lograr eficiencia en estos casos se trabaja utilizando fuentes extendidas $S^n$, esta técnica consiste en agrupar bloques de longitud $n$ aprovechando las dependencias espaciales que pudieran existir entre píxeles.
 
 ## Modelo del sistema
 
