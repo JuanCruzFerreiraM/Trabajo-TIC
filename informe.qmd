@@ -1,0 +1,61 @@
+---
+format:
+  pdf:
+    toc: false
+    number-sections: true
+    geometry:
+      - top=25mm
+      - left=25mm
+      - right=25mm
+      - bottom=25mm
+---
+
+\begin{titlepage}
+\centering
+
+{\Huge \bfseries Trabajo Práctico de Simulación\par}
+\vspace{0.25cm}
+{\Large Codificación de fuente y canal\par}
+
+\vspace{1cm}
+
+{\large Ferreira Monteiro, Juan Cruz\par}
+{\large 03476/3\par}
+
+\vfill
+
+{\large \textbf{Facultad de Ingeniería - UNLP}\par}
+{\large Teoría de la Información y Codificación\par}
+
+
+{\large 17 de junio de 2026\par}
+\end{titlepage}
+
+
+\renewcommand{\contentsname}{Índice}
+\tableofcontents
+\newpage
+
+\pagenumbering{arabic}
+
+# Introducción
+
+## Contexto Teórico
+### Codificación de Fuente
+
+
+## Modelo del sistema
+
+# Codificación de canal: Desarrollo Analítico
+
+## Definición del código
+## Capacidad de corrección
+## Desempeño teórico
+
+# Simulación y Resultados
+
+## Ejercicio 1 - Corrección de errores
+## Ejercicio 2 - Detección de errores
+## Ejercicio 3 - Codificación de fuente
+
+# Conclusiones
