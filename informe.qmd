@@ -43,7 +43,7 @@ format:
 ## Contexto Teórico
 ### Codificación de Fuente
 
-La codificación es la traducción de los símbolos de una fuente con un formato adecuado para su transmisión, por lo que entonces un símbolo $s_k$ perteneciente a una fuente $S = \{s_1, s_2, \dots, s_{K-1}\} \text{ con } P\{s_k\} = p_k$ quedará codificado en una secuencia de largo en bits $l_k$ (esta secuencia es denominada palabra), además el código será instantáneo o de prefijo si ninguna palabra de código es prefijo de otra. Dichos códigos cumplen el **Teorema de codificación de fuente de Shannon** el cual establece lo siguiente:
+La codificación es la traducción de los símbolos de una fuente con un formato adecuado para su transmisión, por lo que entonces un símbolo $s_k$ perteneciente a una fuente $S = \{s_1, s_2, \dots, s_K\} \text{ con } P\{s_k\} = p_k$ quedará codificado en una secuencia de largo en bits $l_k$ (esta secuencia es denominada palabra), además el código será instantáneo o de prefijo si ninguna palabra de código es prefijo de otra. Dichos códigos cumplen el **Teorema de codificación de fuente de Shannon** el cual establece lo siguiente:
 
 Dado $\bar{L} = \sum_{k=0}^{K-1} p_k l_k$ el largo promedio de la palabra de código, se cumple que 
 
@@ -59,13 +59,175 @@ $$
 
 Por lo tanto el **Teorema de codificación de fuente de Shannon** nos da un límite a la compresión que puede realizarse usando un código instantáneo. Para acercarnos a este límite fundamental establecido por la entropía y lograr una compresión eficiente, utilizaremos el algoritmo de Huffman, este algoritmo es una codificación de longitud variable basada en la probabilidad de los símbolos de la fuente y consiste en sistematizar la idea de asignar longitudes de palabra menores a los símbolos más probables, el algoritmo es óptimo en el sentido de que el promedio de dígitos binarios requeridos para representar un símbolo es mínimo [@proakis1995digital, p. 342], sin embargo la eficiencia de esta codificación se ve limitada en el caso de que los símbolos sean equiprobables [@proakis1995digital]. En el caso particular del trabajo que se está desarrollando la fuente a codificar contiene píxeles negros y blancos con probabilidad de ocurrencia prácticamente iguales, para lograr eficiencia en estos casos se trabaja utilizando fuentes extendidas $S^n$, esta técnica consiste en agrupar bloques de longitud $n$ aprovechando las dependencias espaciales que pudieran existir entre píxeles.
 
+## Codificación de Canal
+
+Por otro lado, una vez que la información ha sido comprimida eficientemente, debe ser transmitida a través de un medio físico. Los canales prácticos de comunicación no son ideales e introducen perturbaciones, como el Ruido Blanco Gaussiano Aditivo (AWGN), que pueden alterar la amplitud de la señal y provocar errores en la recepción de los bits. Para combatir este fenómeno, se emplea la **codificación de canal**. A diferencia de la codificación de fuente, que busca eliminar redundancia, la codificación de canal introduce redundancia de manera estructurada y controlada para proteger el mensaje.
+
+La base teórica de este proceso es el **Segundo Teorema de Shannon** (Teorema de codificación de canal), el cual establece que es posible transmitir información con una probabilidad de error arbitrariamente baja siempre que la tasa de transmisión no supere la capacidad del canal [@haykin2001communication]. 
+
+Para llevar a la práctica este concepto, en el presente trabajo se implementará un código de bloque lineal denotado genéricamente como $(n, k)$. Específicamente, se diseñará un código sistemático $(14, 10)$, lo que significa que el mensaje original se divide en bloques de $k=10$ bits, a los cuales el codificador les agrega matemáticamente $n-k=4$ bits de paridad para formar una palabra de código de $n=14$ bits a transmitir.
+
+Finalmente, el modelo del sistema a simular contempla que estas palabras de código sean moduladas utilizando BPSK (Binary Phase Shift Keying) y transmitidas por el canal AWGN. En el receptor, se aplicará una detección dura (hard-decision) sobre la señal ruidosa para decidir el valor binario de cada símbolo recibido, delegando al decodificador de canal la tarea de explotar la redundancia para detectar y corregir los posibles errores producidos durante la transmisión.
+
 ## Modelo del sistema
+
+El modelo del sistema de comunicación a simular comprende una cadena completa de transmisión y recepción digital. En primer lugar, la fuente emite una secuencia de bits de información $b[n]$, los cuales asumen los valores 0 o 1 de forma equiprobable e independiente. Estos bits son procesados por el codificador de canal, el cual agrega redundancia estructurada mediante el código de bloque lineal $(14,10)$ previamente descripto.
+
+Posteriormente, la secuencia binaria codificada es mapeada a símbolos utilizando una modulación BPSK (Binary Phase Shift Keying) antipodal. Para reducir la complejidad y el costo computacional de la simulación, se adopta un modelo equivalente de canal discreto a nivel de símbolo. Este enfoque permite prescindir de la simulación de la portadora pasabanda de alta frecuencia y de las etapas analógicas de filtrado. Asumiendo una recepción óptima con sincronismo perfecto de símbolo y portadora, la señal en el instante de muestreo $m$ queda definida exclusivamente por su componente en fase, y se modela matemáticamente como:
+
+$$
+y_I[m] = \alpha_m + n_I[m]
+$$
+
+Donde $\alpha_m$ representa la amplitud de la señal PAM en banda base transmitida (típicamente asociada a la energía del símbolo), y $n_I[m]$ es una variable aleatoria que representa una muestra de Ruido Blanco Gaussiano Aditivo (AWGN) en dicho instante.
+
+Finalmente, en la etapa de recepción, se emplea un esquema de detección dura (hard-decision). El detector toma la muestra ruidosa $y_I[m]$ y la evalúa contra un umbral de decisión óptimo (cero, para el caso de BPSK antipodal) para emitir una estimación binaria $\hat{b}[n]$. Este flujo de bits estimado es entregado al decodificador de canal, cuya función será explotar la estructura del código $(14,10)$ para detectar y corregir los posibles errores introducidos por el entorno ruidoso.
 
 # Codificación de canal: Desarrollo Analítico
 
 ## Definición del código
-## Capacidad de corrección
+
+Para proveer al sistema de la capacidad de detectar y corregir errores, se diseñó un código de bloque lineal definido por los parámetros $(n, k) = (14, 10)$. Esto implica que por cada bloque de $k = 10$ bits de mensaje provenientes de la fuente, el codificador adiciona $q = n - k = 4$ bits de redundancia (o paridad), resultando en palabras de código de $n = 14$ bits de longitud.
+
+Con el fin de simplificar la circuitería teórica del receptor y separar fácilmente la información útil de la redundancia, el código se implementó en su **forma sistemática**. Bajo esta convención, los primeros $k$ bits de la palabra de código corresponden exactamente al mensaje original, seguidos por los $q$ bits de paridad.
+
+Matemáticamente, el proceso de codificación para un vector de mensaje $m$ se define mediante la **Matriz Generadora** $G$ de dimensiones $k \times n$, estructurada como la concatenación de una matriz identidad $I_k$ y una submatriz de paridad $P$:
+
+$$
+G = \left[ \begin{array}{c|c} I_{10} & P_{10 \times 4} \end{array} \right] =
+\left[ \begin{array}{cccccccccc|cccc}
+1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 & 0 & 0 \\
+0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 & 1 & 0 \\
+0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 & 1 \\
+0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 & 1 \\
+0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 \\
+0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 0 \\
+0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 & 1 & 0 & 1 & 1 \\
+0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 & 1 & 1 & 1 \\
+0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 & 1 & 1 & 0 & 1 \\
+0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 1 & 1 & 1 & 1
+\end{array} \right]
+$$
+
+De esta forma, cualquier palabra de código $c$ se obtiene mediante la operación algebraica en módulo 2: $c = m \cdot G$.
+
+Por otro lado, para el proceso de detección y corrección de errores en el receptor, es fundamental definir la **Matriz de Control de Paridad** $H$, de dimensiones $q \times n$. Debido a la propiedad de ortogonalidad de los códigos de bloque lineales ($G \cdot H^T = 0$), la matriz $H$ se deriva directamente de $G$ de la siguiente manera:
+
+$$
+H = \left[ \begin{array}{c|c} P^T_{4 \times 10} & I_4 \end{array} \right] =
+\left[ \begin{array}{cccccccccc|cccc}
+1 & 1 & 1 & 0 & 0 & 1 & 1 & 0 & 1 & 1 & 1 & 0 & 0 & 0 \\
+1 & 0 & 0 & 1 & 0 & 1 & 0 & 1 & 1 & 1 & 0 & 1 & 0 & 0 \\
+0 & 1 & 0 & 0 & 1 & 1 & 1 & 1 & 0 & 1 & 0 & 0 & 1 & 0 \\
+0 & 0 & 1 & 1 & 1 & 0 & 1 & 1 & 1 & 1 & 0 & 0 & 0 & 1
+\end{array} \right]
+$$
+
+Cuando el receptor obtiene un vector ruidoso $r$ (que puede diferir de $c$ debido a los errores introducidos por el canal AWGN), calcula el **vector síndrome** $s$ mediante la ecuación:
+
+$$
+s = r \cdot H^T
+$$
+
+Si el síndrome resulta ser un vector nulo ($s = \mathbf{0}$), se asume que no ocurrieron errores o que el patrón de error es indetectable. Si $s \neq \mathbf{0}$, el valor específico del síndrome permitirá estimar el patrón de error más probable, un mecanismo que será explotado en las simulaciones posteriores.
+
+## Capacidad de corrección y detección de errores
+
+Para poder determinar la capacidad de corrección y detección de errores del código obtenido, primero debemos definir los conceptos de distancia y peso de Hamming. 
+
+La distancia de Hamming entre dos palabras de código $c_1, c_2 \in C$, denotada como $d(c_1,c_2)$, es el número de componentes en los cuales $c_1$ y $c_2$ difieren. El peso de Hamming de una palabra de código $c \in C$, denotado como $w(c)$, es el número de componentes distintas de cero de dicha palabra. Para un código, la distancia mínima de Hamming será la mínima distancia entre todas las posibles distancias entre palabras de código distintas, y el peso por su parte será el mínimo peso entre todas las palabras de código [@proakis1995digital]. Especialmente en el caso de los códigos lineales se cumple que $d_{min} = w_{min}$, lo que nos permite definir el siguiente teorema:
+
+Sea $C$ un código $(n, k)$ con matriz de verificación $H^T$: 
+
+1. $\forall \bar{v} \in C$ de peso de Hamming $l, \quad \exists l$ filas de $H^T$ que suman cero.
+2. Si $\exists l$ filas de $H^T$ que suman cero $\Rightarrow  \exists \bar{v} \in C / w_H(\bar{v}) = l$ 
+
+$\therefore d_{min}$ está dada por la cantidad mínima de filas de $H^T$ que sumadas dan cero.
+
+Dichas definiciones son extremadamente útiles ya que definimos la capacidad de detección de errores del código como:
+
+$$
+t_d = d_{min} - 1 
+$$
+
+Y la capacidad de corrección de errores como:
+
+$$
+t_c = \left\lfloor \frac{d_{min} - 1}{2}\right\rfloor
+$$
+
+En nuestro caso particular podemos ver que si sumamos las filas 1, 11 y 12 (cuyos valores son $[1, 1, 0, 0]$, $[1, 0, 0, 0]$ y $[0, 1, 0, 0]$ correspondientemente) obtenemos el vector nulo. Dado que no existen dos filas las cuales sumadas den cero (no hay filas repetidas), entonces $d_{min} = 3$. Por lo tanto, las capacidades de corrección y detección de errores serán $t_d = 2$ y $t_c = 1$.
+
+Para validar la eficiencia de este diseño, se evalúa la **Cota de Hamming**, la cual establece el límite teórico máximo de errores $t_c$ que un código lineal $(n,k)$ puede corregir:
+
+$$
+2^{n-k} \ge \sum_{i=0}^{t_c} \binom{n}{i}
+$$
+
+Reemplazando los parámetros de nuestro sistema $(14, 10)$ y asumiendo $t_c=1$:
+
+$$
+2^{14-10} \ge \binom{14}{0} + \binom{14}{1} \implies 16 \ge 1 + 14 \implies 16 \ge 15
+$$
+
+Dado que la condición se cumple estrechamente para $t_c=1$, pero falla rotundamente para $t_c=2$ ($16 \not\ge 106$), se demuestra analíticamente que es imposible construir un código $(14,10)$ capaz de corregir más de un error. En conclusión, la matriz diseñada alcanza el límite teórico máximo, conformando un código óptimo.
+
 ## Desempeño teórico
+
+Para evaluar la eficiencia real y la ganancia de codificación aportada por el diseño $(14, 10)$ propuesto, es indispensable establecer las expresiones analíticas que gobiernan el desempeño teórico del sistema. Esto nos permitirá contar con curvas de referencia exactas para contrastar y validar los resultados obtenidos mediante las simulaciones numéricas. En lo que sigue se adopta la notación del material de la cátedra: $P_{ep}$ denota la probabilidad de error de palabra de código, $P_{eb}$ la de bit de fuente, y los superíndices $(sc)$ y $(c)$ distinguen el sistema sin codificar del codificado con corrección de errores.
+
+En primer lugar, se debe considerar el impacto de la introducción de bits de paridad sobre la energía de las señales transmitidas. Según el modelo del enunciado, si $E_s = A^2$ denota la energía de símbolo de canal y $E_{bf}$ la energía de bit de fuente, al mantener constante la potencia total del sistema se cumple la relación:
+
+$$
+E_{bf} = E_s \frac{n}{k} \quad \Leftrightarrow \quad E_s = E_{bc} = \frac{k}{n}\, E_{bf} = \frac{10}{14}\, E_{bf}
+$$
+
+donde $E_{bc}$ es la energía de bit de canal y, para BPSK binario, coincide con $E_s$.
+
+Dado que el sistema implementa una modulación BPSK antipodal sobre un canal AWGN con un esquema de detección dura (hard-decision) en el receptor, el medio físico continuo se transforma equivalentemente en un Canal Simétrico Binario (CSB). La probabilidad de transición o de error de bit de canal ($p$) antes de ingresar al decodificador queda definida por la función $Q$ de Gauss:
+
+$$
+p = Q\left(\sqrt{\frac{2 E_s}{N_0}}\right) = Q\left(\sqrt{\frac{2 k}{n}\, \frac{E_{bf}}{N_0}}\right)
+$$
+
+Para el sistema de referencia **sin codificar**, la probabilidad de error de bit de fuente es la correspondiente a la modulación BPSK estándar indicada en el enunciado:
+
+$$
+P_{eb}^{(sc)} = Q\left(\sqrt{\frac{2 E_{bf}}{N_0}}\right)
+$$
+
+Para el **sistema codificado** en modo corrector, el decodificador de bloque lineal implementa una decodificación por distancia mínima acotada. Sabiendo que la capacidad de corrección del código es de exactamente $t_c = 1$ error por bloque, el sistema cometerá un error de palabra ($P_{ep}$) si el canal introduce $t_c + 1 = 2$ o más errores a lo largo de los $n=14$ bits transmitidos. Utilizando la distribución binomial, esta probabilidad se expresa como:
+
+$$
+P_{ep} = \sum_{i=t_c+1}^{n} \binom{n}{i} p^i (1-p)^{n-i} = \sum_{i=2}^{14} \binom{14}{i} p^i (1-p)^{14-i}
+$$
+
+A partir de la probabilidad de palabra, y considerando que para canales con baja probabilidad de error ($p \ll 1$) el evento dominante es aquel donde ocurren exactamente $t_c + 1$ errores, la probabilidad de error de bit de fuente post-decodificador ($P_{eb}^{(c)}$) se aproxima analíticamente tomando el primer término de la serie:
+
+$$
+P_{eb}^{(c)} \simeq \frac{2t_c + 1}{n} \binom{n}{t_c + 1} p^{t_c+1}
+$$
+
+Reemplazando por los parámetros de nuestro código ($n=14$, $t_c=1$), la aproximación teórica resulta en:
+
+$$
+P_{eb}^{(c)} \simeq \frac{3}{14} \binom{14}{2} p^2 = \frac{3}{14} \cdot 91 \cdot p^2
+$$
+
+Finalmente, un parámetro de diseño fundamental es la **Ganancia de Codificación Asintótica** ($G_a$), la cual predice la ventaja en potencia del sistema codificado frente al convencional cuando la relación señal a ruido tiende a infinito ($E_{bf}/N_0 \to \infty$). Para un esquema con detección dura (hard-decision), este límite se define en función de la tasa de código y la distancia mínima de Hamming ($d_{min}$) de la siguiente manera:
+
+$$
+G_a = \frac{k}{n} \left\lfloor \frac{d_{min} + 1}{2} \right\rfloor = \frac{10}{14} \left\lfloor \frac{3 + 1}{2} \right\rfloor = \frac{20}{14} \approx 1.4285
+$$
+
+Expresando este resultado en decibelios (dB), obtenemos la ganancia teórica máxima:
+
+$$
+G_{a\text{ (dB)}} = 10 \log_{10}(1.4285) \approx 1.55 \text{ dB}
+$$
+
+Este valor límite indica que, para escenarios de alta relación señal a ruido, el esquema codificado alcanza el mismo desempeño que el sistema sin codificar requiriendo aproximadamente $1.55 \text{ dB}$ menos de potencia.
+
 
 # Simulación y Resultados
 
@@ -74,3 +236,5 @@ Por lo tanto el **Teorema de codificación de fuente de Shannon** nos da un lím
 ## Ejercicio 3 - Codificación de fuente
 
 # Conclusiones
+
+# Referencias
