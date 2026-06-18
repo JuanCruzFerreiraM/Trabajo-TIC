@@ -1,98 +1,35 @@
 import numpy as np
+from scipy.stats import norm
 
 
 def transmitir_codificado(V, EbfN0, n, k, A=1.0):
-    """
-    Simula el canal AWGN con BPSK antipodal y detección dura para un sistema
-    **con codificación de canal**.
-
-    Teoría
-    ------
-    Cada fila de V es una palabra de n bits de canal. Se modula en BPSK antipodal:
-    bit 0 -> -A, bit 1 -> +A. El ruido es AWGN; con detección dura el canal
-    equivale a un CSB con probabilidad de error por bit de canal:
-
-        p = Q( sqrt(2 * Es / N0) ) = Q( sqrt(2 * k/n * Ebf/N0) )
-
-    Energías (enunciado / filminas):
-        Es  = A^2                     (energía de símbolo de canal)
-        Ebf = Es * n / k              (energía de bit de fuente)
-        N0  = Ebf / EbfN0
-
-    El modelo del enunciado usa ruido complejo con varianza N0/2 por dimensión
-    y decide el bit con umbral 0 sobre la parte real.
-
-    Consideraciones de implementación
-    ---------------------------------
-    - V debe ser int 0/1, forma (num_bloques, n).
-    - EbfN0 es lineal (no dB): Ebf/N0.
-    - Vectorizar sobre toda la matriz (sin for por palabra).
-    - Salida R misma forma que V, dtype int, valores solo 0 y 1.
-    - Usar np.random.randn con ruido complejo (1j) como el MATLAB del TP.
-    - A=1 fijo es suficiente; solo escala energías, no cambia las curvas.
-
-    Parámetros
-    ----------
-    V : array (num_bloques, n)
-        Palabras de código a transmitir.
-    EbfN0 : float
-        Cociente Ebf/N0 deseado (lineal).
-    n, k : int
-        Largo de palabra de código y de fuente ((14, 10) en este TP).
-    A : float
-        Amplitud BPSK.
-
-    Retorna
-    -------
-    R : array (num_bloques, n)
-        Bits recibidos tras canal y detección dura.
-    """
-    raise NotImplementedError
+    V = np.asarray(V, dtype=int)
+    Es = A ** 2
+    Ebf = Es * n / k
+    S = (2*V - 1) * A
+    N0 = Ebf / EbfN0
+    form = V.shape
+    noise = np.sqrt(N0/2)*(np.random.randn(*form) + 1 * 1j*np.random.randn(*form))
+    R = S + noise
+    VR = 1 * (np.real(R) > 0)
+    return VR.astype(int)
 
 
 def transmitir_sin_codificar(U, EbfN0, A=1.0):
-    """
-    Simula el canal AWGN con BPSK antipodal y detección dura para el sistema
-    **sin codificación** (referencia del Ejercicio 1).
-
-    Teoría
-    ------
-    Cada bit de fuente se transmite directamente, sin bits de paridad.
-    La energía por bit de fuente es Ebf = Es = A^2 (un bit por símbolo).
-    La probabilidad de error de bit de fuente es la del enunciado:
-
-        Peb_sc = Q( sqrt(2 * Ebf / N0) )
-
-    Con N0 = Ebf / EbfN0.
-
-    Consideraciones de implementación
-    ---------------------------------
-    - U forma (num_bloques, k); salida misma forma.
-    - **No** aplicar el factor n/k en la energía: cada bit de fuente lleva Ebf.
-    - Misma modulación, ruido y detección dura que transmitir_codificado.
-    - Reutilizar la misma lógica interna si querés (DRY), cambiando solo Ebf.
-
-    Parámetros
-    ----------
-    U : array (num_bloques, k)
-        Bits de fuente.
-    EbfN0 : float
-        Cociente Ebf/N0 (lineal).
-    A : float
-        Amplitud BPSK.
-
-    Retorna
-    -------
-    R : array (num_bloques, k)
-        Bits recibidos.
-    """
-    raise NotImplementedError
+    U = np.asarray(U, dtype=int)
+    Es = A ** 2
+    Ebf = Es 
+    S = (2*U - 1) * A
+    N0 = Ebf / EbfN0
+    form = U.shape
+    noise = np.sqrt(N0/2)*(np.random.randn(*form) + 1 * 1j*np.random.randn(*form))
+    R = S + noise
+    VR = 1 * (np.real(R) > 0)
+    return VR.astype(int)
 
 
 def _Q(x):
     """Función Q de Gauss: P(Z > x), Z ~ N(0,1)."""
-    from scipy.stats import norm
-
     return norm.sf(x)
 
 
@@ -143,8 +80,9 @@ def _tests():
         f"p empírico fuente {p_emp_sc:.4f} vs teórico {p_teo_sc:.4f}"
     )
 
-    # --- a igual EbfN0, sin codificar erra más (más Eb efectivo por bit) ---
-    assert p_emp_sc > p_emp, "sin codificar debe tener mayor p a igual Ebf/N0"
+    # --- a igual EbfN0, el canal codificado erra más por bit de canal
+    # (cada bit de canal tiene menos energía: Es = k/n * Ebf) ---
+    assert p_emp > p_emp_sc, "codificado debe tener mayor p de bit de canal a igual Ebf/N0"
 
 
 if __name__ == "__main__":
